@@ -2,7 +2,7 @@ name: Generate Profile Card SVGs
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *'   # Daily at 00:00 UTC
   workflow_dispatch:
 
 permissions:
@@ -19,36 +19,28 @@ jobs:
           token: ${{ secrets.PAT_TOKEN }}
           fetch-depth: 0
 
-      - name: Create assets directory
-        run: mkdir -p assets
-
-      - name: Generate SVG cards for all themes
-        run: |
-          DEPLOYMENT_URL="https://github-profile-card-blue.vercel.app"
-          USERNAME="nayandas69"
-          THEMES=("default" "dark" "dracula" "monokai" "nord" "github_dark" "slate" "midnight" "highcontrast" "pearl" "ice" "sand" "pastel_peach" "pastel_mint" "pastel_lavender" "pastel_lemon" "pastel_rose" "mui_blue" "mui_indigo" "mui_teal" "mui_deep_purple" "mui_orange" "mui_red" "vscode_dark_plus" "vscode_light" "vscode_monokai_pro" "vscode_night_owl" "vscode_palenight" "twitter" "discord" "spotify" "github_light" "youtube" "instagram" "radical" "cyberpunk" "synthwave" "oceanic" "mint" "royal" "gruvbox" "merko" "forest" "rose" "sunset" "lavender" "ember" "tokyonight" "onedark" "cobalt" "amoled_blue" "amoled_green" "amoled_purple" "grayscale_light" "grayscale_mid" "grayscale_dark")
-
-          for theme in "${THEMES[@]}"; do
-            echo "Generating card for theme: $theme"
-            curl -s "${DEPLOYMENT_URL}/card/${USERNAME}?theme=${theme}" > "assets/profile-card-${theme}.svg"
-            echo "Saved: assets/profile-card-${theme}.svg"
-          done
-
       - name: Configure Git
         run: |
           git config user.name "nayandas69"
           git config user.email "174907517+nayandas69@users.noreply.github.com"
 
+      - name: Make script executable
+        run: chmod +x generate-cards.sh
+
+      - name: Run SVG generator script
+        run: ./generate-cards.sh
+
       - name: Commit and Push Changes
         run: |
           if [[ -n $(git status --porcelain) ]]; then
             git add assets/
-            git commit -m "🎨 Update profile card SVGs - $(date +'%Y-%m-%d %H:%M UTC')" || exit 0
+            git commit -m "🎨 Auto-generate profile card SVGs - $(date -u +'%Y-%m-%d %H:%M UTC')"
 
+            # Rebase safely in case of remote updates
             git pull --rebase origin main || true
-            git push origin main
 
-            echo "✅ Successfully committed as nayandas69"
+            git push origin main
+            echo "✅ Changes pushed successfully as nayandas69"
           else
             echo "ℹ️ No changes to commit"
           fi
